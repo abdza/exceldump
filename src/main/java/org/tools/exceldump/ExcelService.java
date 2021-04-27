@@ -35,13 +35,11 @@ public class ExcelService {
 	
 	private MapSqlParameterSource paramsource;
 	
-	private void dumpquery(String query) {
-		System.out.println("running query:" + query);
-		String outputloc = "dump.xlsx";
+	private void dumpquery(String query, String outputfile) {
+		System.out.println("running query:" + query);		
 		paramsource = new MapSqlParameterSource();
 		SqlRowSet toret = namedjdbctemplate.queryForRowSet(query, paramsource);
 		SqlRowSetMetaData rsmd =  toret.getMetaData();
-		System.out.println(rsmd.getColumnCount());		
 		
 		SXSSFWorkbook wb = new SXSSFWorkbook(100); // keep 100 rows in memory, exceeding rows will be flushed to disk
 		Sheet sheet = wb.createSheet();
@@ -63,7 +61,7 @@ public class ExcelService {
 		}
 		
 		try {
-			FileOutputStream fileOut = new FileOutputStream(outputloc);
+			FileOutputStream fileOut = new FileOutputStream(outputfile);
 			wb.write(fileOut);
 			fileOut.close();			
 			wb.dispose();
@@ -85,20 +83,30 @@ public class ExcelService {
 	@PostConstruct
 	public void init() {
 		
-		String sqlcmd="select 1";
+		String sqlcmd = "select 1";
+		String outputfile = "dump.xlsx";
 		boolean gotcmd = false;
 		
+		if(args.containsOption("output")) 
+        {
+            //Get argument values
+            List<String> values = args.getOptionValues("output");
+            try {	            	
+				outputfile = values.get(0);				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }		
 		if(args.containsOption("sqlfile")) 
         {
             //Get argument values
             List<String> values = args.getOptionValues("sqlfile");
-            System.out.println("sqlfile:" + values);
             File tempFile = new File(values.get(0));            
             boolean exists = tempFile.exists();
             if(exists) {
 	            try {	            	
 					sqlcmd = readFileAsString(values.get(0));
-					System.out.println("Using sql from file");
 					gotcmd = true;
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
@@ -110,18 +118,15 @@ public class ExcelService {
         {
             //Get argument values
             List<String> values = args.getOptionValues("sqlcmd");
-            System.out.println("sqlcmd:" + values);
             try {
 				sqlcmd = values.get(0);
-				System.out.println("Using sql from cmdline");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}  
         }
 		
-		dumpquery(sqlcmd);
-		System.out.println("Here iam ");
+		dumpquery(sqlcmd,outputfile);
 	}
 
 }
